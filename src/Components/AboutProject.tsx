@@ -10,6 +10,9 @@ import axios from "axios";
 import { GlobalInfo } from "../App";
 // import moment from "moment";
 import dayjs from "dayjs";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSync } from "@fortawesome/free-solid-svg-icons";
+
 const { RangePicker } = DatePicker;
 
 // import { DatePicker } from "antd";
@@ -70,6 +73,11 @@ const AboutProject: React.FC = () => {
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [totalActTime, setTotalActTime] = useState<string>("");
+  const [selectedDays, setSelectedDays] = useState<number | null>(null);
+  const [selectedButton, setSelectedButton] = useState<number | null>(null);
+  const [performer, setPerformer] = useState<string>("");
+  const [activeButton, setActiveButton] = useState<number | null>(null);
+
 
   const { projEditObj, setProjEditObj } = useContext(GlobalInfo);
 
@@ -77,7 +85,7 @@ const AboutProject: React.FC = () => {
   // console.log(selectedEmployee, "lllllllllllll-----------");
   // console.log(selectedEmployee.employeeName, "sssss----------");
 
-  const handleTotal = () => {
+  const handleTotal = (days: number | null = null) => {
     let filteredTaskObject = EveningTasks;
 
     if (projectName) {
@@ -93,6 +101,8 @@ const AboutProject: React.FC = () => {
       filteredTaskObject = filteredTaskObject.filter(
         (e) => e.employeeID === filteredID[0]?.EmployeeID
       );
+
+      setPerformer(selectedEmployee?.assignedNames)
     }
 
     if (selectedDateRange) {
@@ -102,6 +112,17 @@ const AboutProject: React.FC = () => {
           (!selectedDateRange[0] || taskDate >= selectedDateRange[0]) &&
           (!selectedDateRange[1] || taskDate <= selectedDateRange[1])
         );
+      });
+    }
+
+    if (days) {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      filteredTaskObject = filteredTaskObject.filter((task) => {
+        const taskDate = new Date(task.currDate);
+        return taskDate >= startDate && taskDate <= endDate;
       });
     }
 
@@ -128,6 +149,12 @@ const AboutProject: React.FC = () => {
   const projectNames = projectsInfo.filter((e: Project) => {
     return e.projectName;
   });
+
+  const handleButtonClick = (buttonIndex: number, days: number) => {
+    setActiveButton(buttonIndex);
+    setSelectedDays(days);
+    setSelectedDateRange([null, null]); // Clear selectedDateRange
+  };
 
   const handleChange = (value: string) => {
     console.log(`selected ${value}`);
@@ -286,7 +313,8 @@ const AboutProject: React.FC = () => {
             <Menu />
           </div>
           <div>
-            <div style={{ width: "92%", marginLeft: "4.4%", marginTop: "5%" }}>
+            <div style={{ width: "92%", marginLeft: "4.4%", marginTop: "5%", }}>
+              <div  style={{display: 'flex', flexDirection:'row' }}>
               <p
                 style={{
                   color: "#094781",
@@ -299,6 +327,27 @@ const AboutProject: React.FC = () => {
                 About Project
               </p>
 
+              <button
+    style={{
+      marginLeft: "10px",
+      backgroundColor: "transparent",
+      border: "none",
+      outline: "none",
+      cursor: "pointer",
+    }}
+    onClick={() => {
+      setSelectedEmployee(null);
+      setSelectedDateRange([null, null]);
+      setSelectedButton(null);
+      setSelectedDays(null);
+      setTotalActTime('');
+      setPerformer("");
+    }}
+  >
+    <FontAwesomeIcon icon={faSync} size="lg" />
+  </button>
+  </div>
+
               <div
                 style={{
                   display: "flex",
@@ -307,12 +356,74 @@ const AboutProject: React.FC = () => {
                 }}
                 // className="proj-person"
               >
-                <div style={{ marginTop: "10px" }} className="add-div">
+<div  style={{display:'flex', flexDirection:'row' ,height:'70px'}}>
+<button
+    style={{
+      marginTop: "30px",
+      backgroundColor: "#094781",
+      color: "white",
+      padding: "10px",
+      width: "55px",
+      borderRadius: "7px",
+    }}
+    onClick={() => handleTotal(selectedDays)}
+  >
+    Go
+  </button>
+
+        <div>
+
+        {totalActTime && (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: 'space-around',
+      alignItems: "center",
+      margin: "20px 0",
+      marginLeft: '16px',
+      padding: "10px",
+      border: "1px solid #ccc",
+      borderRadius: "5px",
+      width:'17vw',
+      marginTop:'30px'
+    }}
+  >
+    {performer && (
+      <p style={{ fontSize: "16px", fontWeight: "bold", margin: "0" }}>
+        {performer}
+      </p>
+    )}
+
+    <span
+      style={{
+        marginLeft: "5px",
+        marginRight: "5px",
+        fontSize: "14px",
+        fontWeight: "600",
+      }}
+    >
+      Total Time:
+    </span>
+    <span style={{ fontSize: "14px", fontWeight: "600" ,}}>{totalActTime}</span>
+  </div>
+)}
+
+
+
+        </div>
+        </div>
+               <div style={{marginTop:'40px',height:'2vh',marginLeft:'5px'}}>
+                <h4 >Filters</h4>
+               </div>
+
+                <div style={{ marginTop: "2px" }} className="add-div">
                   <label className="add-label"></label>
                   <select
                     className="add-input"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
+                    // placeholder="Select a project"
                   >
                     <option value="">Select a project</option>
                     {projectNames.map((project: any) => (
@@ -326,27 +437,29 @@ const AboutProject: React.FC = () => {
                 <div style={{ marginTop: "10px" }} className="add-div">
                   <label className="add-label"></label>
                   <select
-                    className="add-input"
-                    value={selectedEmployee?.EmployeeID || ""}
-                    onChange={(e) => {
-                      const selectedValue = e.target.value;
-                      if (selectedValue) {
-                        const foundEmployee = employees.find(
-                          (emp) => emp.EmployeeID === selectedValue
-                        );
-                        setSelectedEmployee(foundEmployee);
-                      } else {
-                        setSelectedEmployee(null);
-                      }
-                    }}
-                  >
-                    <option value="">Select Employee</option>
-                    {employees.map((e, index) => (
-                      <option key={index} value={e.EmployeeID}>
-                        {e.assignedNames}
-                      </option>
-                    ))}
-                  </select>
+  className="add-input"
+  value={selectedEmployee?.EmployeeID || ""}
+  onChange={(e) => {
+    const selectedValue = e.target.value;
+    if (selectedValue) {
+      const foundEmployee = employees.find(
+        (emp) => emp.EmployeeID === selectedValue
+      );
+      setSelectedEmployee(foundEmployee);
+    } else {
+      setSelectedEmployee(null);
+      // setPerformer("");
+    }
+  }}
+>
+  <option value="" disabled>Select Employee</option>
+  {employees.map((e, index) => (
+    <option key={index} value={e.EmployeeID}>
+      {e.assignedNames}
+    </option>
+  ))}
+</select>
+
 
                   <div style={{ marginTop: "10px" }} className="add-div">
                     <label className="add-label"></label>
@@ -365,49 +478,51 @@ const AboutProject: React.FC = () => {
                           dates?.[0]?.toDate() || null,
                           dates?.[1]?.toDate() || null,
                         ]);
+                        setSelectedButton(null); // Clear selectedButton
+                        setSelectedDays(null); // Clear selectedDays
                       }}
                     />
                   </div>
 
+                  <div style={{marginTop :'16px ', marginBottom:'16px', marginLeft:'90%'}}>OR</div>
 
                   <div>
-                       <button> last 7 days </button>
-                       <button> last 30 days </button>
-                       <button> last 365 days </button>
+                  <button
+        onClick={() => handleButtonClick(0, 7)}
+        style={{
+          backgroundColor: activeButton === 0 ? "#094781" : "initial",
+          color: activeButton === 0 ? "white" : "initial",
+        }}
+      >
+        Last 7 Days
+      </button>
+      <button
+        onClick={() => handleButtonClick(1, 30)}
+        style={{
+          backgroundColor: activeButton === 1 ? "#094781" : "initial",
+          color: activeButton === 1 ? "white" : "initial",
+        }}
+      >
+        Last 30 Days
+      </button>
+      <button
+        onClick={() => handleButtonClick(2, 365)}
+        style={{
+          backgroundColor: activeButton === 2 ? "#094781" : "initial",
+          color: activeButton === 2 ? "white" : "initial",
+        }}
+      >
+        Last 365 Days
+      </button>
                   </div>
 
-                  <button
-                    style={{
-                      marginTop: "30px",
-                      backgroundColor: "#094781",
-                      color: "white",
-                      padding: "10px",
-                      width: "55px",
-                      borderRadius: "7px",
-                    }}
-                    onClick={handleTotal}
-                  >
-                    {" "}
-                    Go
-                  </button>
+
+
+
                 </div>
 
-                {totalActTime && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <p>{selectedEmployee.assignedNames}</p>
 
-                    <span style={{ marginLeft: "10px", marginRight: "10px" }}>
-                      Total Actual Time:{" "}
-                    </span>
-                    <span>{totalActTime}</span>
-                  </div>
-                )}
+
 
                 {/* {dates.map((date) => (
         <div key={date}>
